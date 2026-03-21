@@ -1,233 +1,214 @@
 ---
 name: xhs-cli
-description: 使用 xhs CLI 工具与小红书（Xiaohongshu/Red）交互，获取笔记信息、下载图片、搜索内容、管理收藏和互动。当用户提到小红书、笔记下载、搜索、点赞、收藏等场景时触发。支持批量操作和结构化输出（YAML/JSON）。
+description: 使用 xhs CLI 工具与小红书（Xiaohongshu/Red）交互。支持搜索、阅读笔记、评论、点赞、收藏、关注、发布、通知等功能。当用户提到小红书、笔记查看、搜索内容、点赞、收藏、评论、发布等场景时触发。
 ---
 
 # XHS CLI Skill
 
-通过 [xiaohongshu-cli](https://github.com/jackwener/xiaohongshu-cli) 工具在终端与小红书交互。
+通过 [xiaohongshu-cli](https://github.com/jackwener/xiaohongshu-cli) 在终端与小红书交互。
 
 ## Prerequisites
 
-确保已安装 xiaohongshu-cli 以及已登录：
-
 ```bash
+# 检查是否已安装并登录
 xhs status
-# 正常情况下会输出已登录用户信息
-✅ 已登录：用户名 (用户ID)
 ```
 
-如果没有安装：
-
+如果未安装：
 ```bash
 uv tool install xiaohongshu-cli
+# 升级到最新版本
+uv tool upgrade xiaohongshu-cli
 ```
 
 首次使用需登录：
 ```bash
-xhs login      # 扫码登录
-xhs status     # 检查登录状态
+xhs login           # 自动提取浏览器 Cookie
+xhs login --qrcode  # 扫码登录
+xhs whoami          # 确认登录状态
 ```
 
-## Core Workflows
+## Core Commands
 
-### 1. 获取笔记信息
+### 认证（Auth）
 
 ```bash
-# 基本信息
-xhs note <笔记ID>
-
-# 带图片下载
-xhs note <笔记ID> --images
-
-# AI 摘要
-xhs note <笔记ID> --ai
-
-# 热门评论
-xhs note <笔记ID> --comments
-
-# 相关推荐笔记
-xhs note <笔记ID> --related
+xhs login                    # 从浏览器自动提取 Cookie
+xhs login --qrcode           # 扫码登录（终端显示二维码）
+xhs status                   # 检查登录状态
+xhs whoami                   # 查看当前用户详细资料
+xhs whoami --json            # 结构化 JSON 输出
+xhs logout                   # 清除保存的 Cookie
 ```
 
-**结构化输出**（推荐用于后续处理）：
-```bash
-xhs note <笔记ID> --yaml
-xhs note <笔记ID> --json
-```
-
-### 2. 搜索与发现
+### 搜索（Search）
 
 ```bash
-# 搜索笔记
-xhs search "关键词" --type note --max 10
-
-# 搜索用户
-xhs search "用户名"
-
-# 热门笔记
-xhs hot --page 1 --max 20
-
-# 推荐流
-xhs feed
+xhs search "关键词"                    # 搜索笔记
+xhs search "旅行" --sort popular       # 排序：general, popular, latest
+xhs search "穿搭" --type video         # 类型：all, video, image
+xhs search "AI" --page 2              # 翻页
+xhs search-user "用户名"               # 搜索用户
+xhs topics "美食"                      # 搜索话题/标签
 ```
 
-### 3. 用户相关
+### 阅读（Reading）
 
 ```bash
-# 用户资料
-xhs user <用户ID>
-xhs user "用户名"      # 按名称搜索
+# 短索引（在 search/feed/hot/user-posts 之后使用）
+xhs read 1                             # 阅读上次列表的第 1 条笔记
+xhs comments 1                         # 查看上次列表的第 1 条笔记评论
 
-# 用户笔记列表
-xhs user-notes <用户ID> --max 20
+# 完整命令
+xhs read <note_id>                     # 阅读笔记（仅 API）
+xhs read "https://www.xiaohongshu.com/explore/xxx?xsec_token=yyy"  # 通过 URL 阅读
 
-# 当前登录用户信息
-xhs whoami
-xhs whoami --yaml
+xhs comments <url>                     # 查看评论（URL 含 xsec_token）
+xhs comments <url> --all               # 获取全部评论（自动翻页）
+xhs comments <url> --all --json        # 全部评论，JSON 格式
+xhs comments <note_id> --xsec-token T  # 显式指定 token
+
+xhs sub-comments <note_id> <cmt_id>   # 查看评论的回复
+
+xhs user <user_id>                     # 用户主页
+xhs user-posts <user_id>              # 用户发布的笔记
+xhs user-posts <user_id> --cursor X   # 用 cursor 翻页
 ```
 
-### 4. 图片下载
+### 发现（Feed & Discovery）
 
 ```bash
-# 下载笔记所有图片
-xhs images <笔记ID>
-
-# 指定输出目录
-xhs images <笔记ID> -o ~/Downloads/
-
-# 指定图片质量
-xhs images <笔记ID> --quality origin
+xhs feed                              # 推荐 Feed
+xhs hot                               # 热门笔记（默认：food）
+xhs hot -c fashion                    # 分类：fashion, food, cosmetics,
+                                      #       movie, career, love, home,
+                                      #       gaming, travel, fitness
 ```
 
-### 5. 互动操作
+### 社交（Social）
 
 ```bash
-# 点赞
-xhs like <笔记ID>
-
-# 收藏
-xhs collect <笔记ID>
-
-# 关注用户
-xhs follow <用户ID>
-
-# 取消关注
-xhs unfollow <用户ID>
+xhs favorites                          # 我的收藏夹
+xhs favorites <user_id>                # 其他用户的收藏
+xhs likes                              # 我的点赞
+xhs likes <user_id>                    # 其他用户的点赞
+xhs follow <user_id>                   # 关注用户
+xhs unfollow <user_id>                 # 取消关注
 ```
 
-### 6. 收藏与列表管理
+### 互动（Interactions）
 
 ```bash
-# 查看收藏夹列表
-xhs collections
+# 短索引形式（在列表命令之后使用）
+xhs like 1                             # 给第 1 条笔记点赞
+xhs favorite 1                         # 收藏第 1 条笔记
+xhs comment 1 -c "好赞！"              # 评论第 1 条笔记
+xhs reply 1 --comment-id X -c "回复"   # 回复第 1 条笔记的评论
 
-# 查看指定收藏夹内容
-xhs collections <收藏夹ID> --page 1
-
-# 观看历史
-xhs history
-
-# 关注列表
-xhs following
+# 完整形式
+xhs like <note_id>                     # 点赞
+xhs like <note_id> --undo             # 取消点赞
+xhs favorite <note_id>                 # 收藏
+xhs unfavorite <note_id>               # 取消收藏
+xhs comment <note_id> -c "好赞！"     # 发评论
+xhs reply <note_id> --comment-id X -c "回复"  # 回复评论
+xhs delete-comment <note_id> <cmt_id> # 删除自己的评论
 ```
 
-## Output Formats
+### 创作者（Creator）
 
-### 默认输出
-- TTY（终端）：富文本格式，带颜色
-- 非 TTY：自动使用 YAML
-
-### 显式指定格式
 ```bash
-# 结构化 YAML（推荐，token效率高）
-xhs <command> --yaml
-
-# JSON 格式
-xhs <command> --json
-
-# 富文本（强制）
-xhs <command> --format rich
+xhs my-notes                           # 我的笔记列表
+xhs my-notes --page 1                 # 翻页
+xhs post --title "标题" --body "正文" --images img.jpg  # 发布图文笔记
+xhs delete <note_id>                   # 删除笔记
+xhs delete <note_id> -y               # 跳过确认
 ```
 
-### 环境变量
+### 通知（Notifications）
+
 ```bash
-OUTPUT=yaml      # 默认 YAML
-OUTPUT=json      # 默认 JSON
-OUTPUT=rich      # 默认富文本
-OUTPUT=auto      # 自动检测
+xhs unread                             # 未读数（点赞、@、新关注）
+xhs notifications                      # 评论和 @ 通知
+xhs notifications --type likes        # 赞和收藏通知
+xhs notifications --type connections   # 新增关注通知
 ```
 
-## Structured Data Schema
+## Structured Output
 
-所有 `--yaml` / `--json` 输出使用统一信封格式：
+所有命令支持结构化输出：
 
+```bash
+xhs <command> --yaml    # YAML 格式（推荐，token 效率高）
+xhs <command> --json    # JSON 格式
+```
+
+非 TTY 环境（管道/脚本调用）默认输出 YAML。
+
+统一输出信封（Envelope）格式：
 ```yaml
 ok: true
-schema_version: "1.0"
-data:
-  note: {...}
-  images: [...]
-  comments: [...]
-  ai_summary: "..."
+schema_version: "1"
+data: { ... }
 error: null
 ```
 
-**数据路径映射：**
+环境变量控制全局格式：
+```bash
+OUTPUT=yaml xhs search "美食"   # 强制 YAML
+OUTPUT=json xhs whoami          # 强制 JSON
+```
 
-| 命令 | 数据路径 |
+## Short-Index Navigation
+
+执行列表命令（search/feed/hot/user-posts/favorites/my-notes）后，结果缓存在 `~/.xiaohongshu-cli/index_cache.json`。
+
+可用短索引的命令：`read`, `comments`, `like`, `favorite`, `unfavorite`, `comment`, `reply`
+
+```bash
+xhs search "美食"      # 搜索后缓存结果
+xhs read 1            # 阅读第 1 条
+xhs comments 1        # 查看第 1 条评论
+xhs like 1            # 点赞第 1 条
+```
+
+## Error Handling
+
+| 错误 | 解决方案 |
 |------|---------|
-| `xhs note` | `data.note`, `data.images`, `data.ai_summary`, `data.comments`, `data.related` |
-| `xhs hot` / `feed` | `data.items` |
-| `xhs search` | 标准化的用户/笔记列表 |
-| 写操作（like/collect等） | 标准化结果 |
-
-## Error Codes
-
-| 错误码 | 含义 | 解决方案 |
-|-------|------|---------|
-| `not_authenticated` | 需要登录 | 运行 `xhs login` |
-| `permission_denied` | 权限不足 | 检查账号权限 |
-| `invalid_input` | 输入无效 | 检查笔记ID格式 |
-| `network_error` | 网络错误 | 检查网络连接/代理 |
-| `upstream_error` | 上游错误 | 小红书服务异常，稍后重试 |
-| `not_found` | 资源不存在 | 检查笔记/用户是否存在 |
-| `rate_limited` | 请求过于频繁 | 减少 `--max` 参数，等待后重试 |
-| `internal_error` | 内部错误 | 重新登录或联系开发者 |
+| `NoCookieError` | 浏览器访问 xiaohongshu.com 登录后，执行 `xhs login` |
+| `NeedVerifyError` | 浏览器完成验证码后重试 |
+| `IpBlockedError` | 切换网络（热点/VPN） |
+| `SessionExpiredError` | 执行 `xhs login` 刷新 Cookie |
+| 请求慢 | 正常现象，内置高斯随机延迟避免风控 |
 
 ## Best Practices
 
-1. **优先使用结构化输出**：在自动化脚本中使用 `--yaml` 或 `--json` 便于解析
-2. **批量操作添加延迟**：避免触发 rate limit
-3. **图片下载注意版权**：仅供个人学习使用
-4. **关注反爬机制**：合理控制请求频率
+1. **优先使用短索引**：先 `xhs search`，再 `xhs read 1` 操作，流畅自然
+2. **结构化输出用于自动化**：脚本中加 `--yaml` 便于解析
+3. **定期升级**：`uv tool upgrade xiaohongshu-cli`，避免 API 变更导致错误
+4. **合理频率**：批量操作间增加间隔，避免触发验证码
 
 ## Examples
 
-### 示例 1：获取笔记完整信息
 ```bash
-xhs note <note_id> --images --comments --ai --yaml
-```
+# 场景 1：搜索并阅读笔记
+xhs search "川菜教程" --sort popular
+xhs read 1
+xhs comments 1
 
-### 示例 2：批量获取热门笔记
-```bash
-xhs hot --page 1 --max 50 --yaml
-```
+# 场景 2：查看用户内容
+xhs search-user "某博主"
+xhs user-posts <user_id> --yaml
 
-### 示例 3：搜索并筛选
-```bash
-xhs search "穿搭教程" --type note --max 10 --yaml
-```
+# 场景 3：批量获取热门笔记
+xhs hot -c travel --yaml
 
-### 示例 4：下载笔记图片
-```bash
-xhs images <note_id> -o ./images/
-```
+# 场景 4：互动
+xhs search "咖啡探店"
+xhs like 1
+xhs comment 1 -c "看起来很好喝！"
 
-### 示例 5：获取用户最近笔记
-```bash
-# 先搜索用户ID
-xhs user "用户名"
-# 然后用用户ID获取笔记
-xhs user-notes <user_id> --max 20 --yaml
+# 场景 5：获取所有评论
+xhs comments "https://www.xiaohongshu.com/explore/xxx?xsec_token=yyy" --all --yaml
 ```
