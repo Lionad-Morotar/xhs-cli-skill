@@ -6,7 +6,7 @@ Claude Skill for Xiaohongshu CLI operations — browse notes, search, download i
 
 ```bash
 cd ~/.claude
-npx skills add -g https://github.com/Lionad-Morotar/xhs-cli-skill
+npx skills add -g Lionad-Morotar/xhs-cli-skill
 ```
 
 ## Usage
